@@ -44,11 +44,11 @@ typedef unsigned long UBaseType_t;
 
 /* Architecture specifics. */
 #define portSTACK_GROWTH			( -1 )											////在“任务通知的数据结构”章节的typedef struct tskTaskControlBlock才提到
-#define portTICK_PERIOD_MS			( ( TickType_t ) 1000 / configTICK_RATE_HZ )	////用于辅助计算真实的时间，单位为ms，在xQueueSend()函数中使用到
+#define portTICK_PERIOD_MS			( ( TickType_t ) 1000 / configTICK_RATE_HZ )	////用于辅助计算真实的时间(阻塞等待)，单位为ms，在xQueueSend()函数中使用到
 #define portBYTE_ALIGNMENT			8												////配置栈空间为按 8 字节对齐
 
-/* Constants used with memory barrier intrinsics. */								////在portYIELD()函数中的__dsb和__isb调用中使用到
-#define portSY_FULL_READ_WRITE		( 15 )
+/* Constants used with memory barrier intrinsics. */
+#define portSY_FULL_READ_WRITE		( 15 )			////在portYIELD()函数中的__dsb和__isb调用中使用到
 
 /*-----------------------------------------------------------*/
 
@@ -68,8 +68,8 @@ typedef unsigned long UBaseType_t;
 }
 /*-----------------------------------------------------------*/
 
-#define portNVIC_INT_CTRL_REG		( * ( ( volatile uint32_t * ) 0xe000ed04 ) )		////控制寄存器Interrupt control and state register(SCB_ICSR)
-#define portNVIC_PENDSVSET_BIT		( 1UL << 28UL )										////SCB_ICSR: bit28 -- 触发任务切换的寄存器的bit位 (PENDSVSET: PendSV set-pending bit)
+#define portNVIC_INT_CTRL_REG		( * ( ( volatile uint32_t * ) 0xe000ed04 ) )	////控制寄存器Interrupt control and state register(SCB_ICSR)
+#define portNVIC_PENDSVSET_BIT		( 1UL << 28UL )									////SCB_ICSR: bit28 -- 触发任务切换的寄存器的bit位 (PENDSVSET: PendSV set-pending bit)
 #define portEND_SWITCHING_ISR( xSwitchRequired ) if( xSwitchRequired != pdFALSE ) portYIELD()	////用于根据某些(如xTaskResumeFromISR())函数的返回来判断是否需要执行上下文切换
 #define portYIELD_FROM_ISR( x ) portEND_SWITCHING_ISR( x )
 /*-----------------------------------------------------------*/
@@ -107,8 +107,8 @@ extern void vPortExitCritical( void );
 	#endif
 
 	/* Store/clear the ready priorities in a bit map. */
-	#define portRECORD_READY_PRIORITY( uxPriority, uxReadyPriorities ) ( uxReadyPriorities ) |= ( 1UL << ( uxPriority ) )
-	#define portRESET_READY_PRIORITY( uxPriority, uxReadyPriorities ) ( uxReadyPriorities ) &= ~( 1UL << ( uxPriority ) )
+	#define portRECORD_READY_PRIORITY( uxPriority, uxReadyPriorities ) ( uxReadyPriorities ) |= ( 1UL << ( uxPriority ) )	////标志优先级位
+	#define portRESET_READY_PRIORITY( uxPriority, uxReadyPriorities ) ( uxReadyPriorities ) &= ~( 1UL << ( uxPriority ) )	////清除优先级位
 
 	/*-----------------------------------------------------------*/
 
@@ -120,8 +120,8 @@ extern void vPortExitCritical( void );
 /* Task function macros as described on the FreeRTOS.org WEB site.  These are
 not necessary for to use this port.  They are defined so the common demo files
 (which build with all the ports) will build. */
-#define portTASK_FUNCTION_PROTO( vFunction, pvParameters ) void vFunction( void *pvParameters )
-#define portTASK_FUNCTION( vFunction, pvParameters ) void vFunction( void *pvParameters )
+#define portTASK_FUNCTION_PROTO( vFunction, pvParameters ) void vFunction( void *pvParameters ) ////
+#define portTASK_FUNCTION( vFunction, pvParameters ) void vFunction( void *pvParameters )		////task.c中L1791动态创建idle任务时用到
 /*-----------------------------------------------------------*/
 
 #ifdef configASSERT

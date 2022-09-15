@@ -133,7 +133,7 @@ extern "C" {
 	#define INCLUDE_eTaskGetState 0
 #endif
 
-#ifndef INCLUDE_xTaskResumeFromISR				////xTaskResumeFromISR()中有用到
+#ifndef INCLUDE_xTaskResumeFromISR				////置1时，xTaskResumeFromISR()才能用
 	#define INCLUDE_xTaskResumeFromISR 1
 #endif
 
@@ -149,7 +149,7 @@ extern "C" {
 	#define INCLUDE_xTaskGetCurrentTaskHandle 0
 #endif
 
-#if configUSE_CO_ROUTINES != 0			////启用协程，启用协程以后必须添加文件 croutine.c
+#if configUSE_CO_ROUTINES != 0					////启用协程，启用协程以后必须添加文件 croutine.c
 	#ifndef configMAX_CO_ROUTINE_PRIORITIES
 		#error configMAX_CO_ROUTINE_PRIORITIES must be greater than or equal to 1.
 	#endif
@@ -172,10 +172,10 @@ extern "C" {
 #endif
 
 #ifndef configUSE_MUTEXES						////使用互斥信号量，野火中置1
-	#define configUSE_MUTEXES 0
+	#define configUSE_MUTEXES 1
 #endif
 
-#ifndef configUSE_TIMERS						////启用软件计时器
+#ifndef configUSE_TIMERS						////启用软件计时器，野火中置1
 	#define configUSE_TIMERS 0
 #endif
 
@@ -648,7 +648,7 @@ extern "C" {
 	#define configPOST_SLEEP_PROCESSING( x )
 #endif
 
-#ifndef configUSE_QUEUE_SETS				////启用队列
+#ifndef configUSE_QUEUE_SETS				////启用队列，野火中置为1
 	#define configUSE_QUEUE_SETS 0
 #endif
 

@@ -52,7 +52,7 @@ is defined. */
 #define portNVIC_SYSTICK_PRI				( ( ( uint32_t ) configKERNEL_INTERRUPT_PRIORITY ) << 24UL )	////SCB_SHPR3的24~31位（24~27:r  28~31:rw）
 
 /* Constants required to check the validity of an interrupt priority. */
-#define portFIRST_USER_INTERRUPT_NUMBER		( 16 )
+#define portFIRST_USER_INTERRUPT_NUMBER		( 16 )				////L55~62的宏定义都用在ASSERT_DEFINED的前提下
 #define portNVIC_IP_REGISTERS_OFFSET_16 	( 0xE000E3F0 )
 #define portAIRCR_REG						( * ( ( volatile uint32_t * ) 0xE000ED0C ) )
 #define portMAX_8_BIT_VALUE					( ( uint8_t ) 0xff )
@@ -62,7 +62,7 @@ is defined. */
 #define portPRIGROUP_SHIFT					( 8UL )
 
 /* Constants required to set up the initial stack. */
-#define portINITIAL_XPSR			( 0x01000000 )
+#define portINITIAL_XPSR			( 0x01000000 )		////在pxPortInitialiseStack()中用到
 
 /* The systick is a 24-bit counter. */
 #define portMAX_24_BIT_NUMBER				( 0xffffffUL )
@@ -72,8 +72,8 @@ occurred while the SysTick counter is stopped during tickless idle
 calculations. */
 #define portMISSED_COUNTS_FACTOR			( 45UL )
 
-/* For strict compliance with the Cortex-M spec the task start address should
-have bit-0 clear, as it is loaded into the PC on exit from an ISR. */
+/* For strict compliance with the Cortex-M spec the task start address should  为了严格遵守Cortex-M规范，任务开始地址
+have bit-0 clear, as it is loaded into the PC on exit from an ISR.  应该清除位0，因为它在从ISR退出时被加载到PC上*/
 #define portSTART_ADDRESS_MASK				( ( StackType_t ) 0xfffffffeUL )
 
 /* Each task maintains its own interrupt status in the critical nesting
@@ -90,9 +90,9 @@ void vPortSetupTimerInterrupt( void );
 /*
  * Exception handlers.
  */
-void xPortPendSVHandler( void );
-void xPortSysTickHandler( void );
-void vPortSVCHandler( void );
+void xPortPendSVHandler( void );		////调度中断服务
+void xPortSysTickHandler( void );		////时基中断服务
+void vPortSVCHandler( void );			////任务启动中断服务
 
 /*
  * Start first task is a separate function so it can be tested in isolation.
@@ -109,7 +109,7 @@ static void prvTaskExitError( void );
 /*
  * The number of SysTick increments that make up one tick period.
  */
-#if configUSE_TICKLESS_IDLE == 1
+#if configUSE_TICKLESS_IDLE == 1			
 	static uint32_t ulTimerCountsForOneTick = 0;
 #endif /* configUSE_TICKLESS_IDLE */
 
@@ -267,8 +267,8 @@ BaseType_t xPortStartScheduler( void )
 	}
 	#endif /* conifgASSERT_DEFINED */
 
-	/* Make PendSV and SysTick the lowest priority interrupts. */		////配置 PendSV 和 SysTick 的中断优先级为最低
-	portNVIC_SYSPRI2_REG |= portNVIC_PENDSV_PRI;
+	/* Make PendSV and SysTick the lowest priority interrupts. */		
+	portNVIC_SYSPRI2_REG |= portNVIC_PENDSV_PRI;	////配置 PendSV 和 SysTick 的中断优先级为最低
 	portNVIC_SYSPRI2_REG |= portNVIC_SYSTICK_PRI;
 
 	/* Start the timer that generates the tick ISR.  Interrupts are disabled
@@ -322,7 +322,7 @@ void vPortExitCritical( void )
 }
 /*-----------------------------------------------------------*/
 
-__asm void xPortPendSVHandler( void )
+__asm void xPortPendSVHandler( void )	////任务切换 中断服务函数
 {
 	extern uxCriticalNesting;
 	extern pxCurrentTCB;
@@ -359,7 +359,7 @@ __asm void xPortPendSVHandler( void )
 }
 /*-----------------------------------------------------------*/
 
-void xPortSysTickHandler( void )			////SysTick 中断服务函数
+void xPortSysTickHandler( void )		////SysTick 中断服务函数
 {
 	/* The SysTick runs at the lowest interrupt priority, so when this interrupt
 	executes all interrupts must be unmasked.  There is therefore no need to
@@ -380,7 +380,7 @@ void xPortSysTickHandler( void )			////SysTick 中断服务函数
 }
 /*-----------------------------------------------------------*/
 
-#if configUSE_TICKLESS_IDLE == 1			////低功耗模式下才执行
+#if configUSE_TICKLESS_IDLE == 1		////低功耗模式下才执行
 
 	__weak void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
 	{
@@ -560,16 +560,16 @@ void xPortSysTickHandler( void )			////SysTick 中断服务函数
 #endif /* configOVERRIDE_DEFAULT_TICK_CONFIGURATION */
 /*-----------------------------------------------------------*/
 
-__asm uint32_t vPortGetIPSR( void )
-{
-	PRESERVE8
+__asm uint32_t vPortGetIPSR( void )		////The IPSR(Interrupt program status register) contains
+{										////the exception type number of the current Interrupt Service Routine
+	PRESERVE8							////详细看PM0056 -- P18,P32
 
 	mrs r0, ipsr
 	bx r14
 }
 /*-----------------------------------------------------------*/
 
-#if( configASSERT_DEFINED == 1 )			////在FreeRTOS.h的configASSERT断言部分中定义为0
+#if( configASSERT_DEFINED == 1 )		////在FreeRTOS.h的configASSERT断言部分中定义为0
 
 	void vPortValidateInterruptPriority( void )
 	{

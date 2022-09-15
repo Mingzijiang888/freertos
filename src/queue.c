@@ -1,72 +1,3 @@
-/*
-    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
-    All rights reserved
-
-    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    This file is part of the FreeRTOS distribution.
-
-    FreeRTOS is free software; you can redistribute it and/or modify it under
-    the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
-
-    ***************************************************************************
-    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
-    >>!   distribute a combined work that includes FreeRTOS without being   !<<
-    >>!   obliged to provide the source code for proprietary components     !<<
-    >>!   outside of the FreeRTOS kernel.                                   !<<
-    ***************************************************************************
-
-    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available on the following
-    link: http://www.freertos.org/a00114.html
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that is more than just the market leader, it     *
-     *    is the industry's de facto standard.                               *
-     *                                                                       *
-     *    Help yourself get started quickly while simultaneously helping     *
-     *    to support the FreeRTOS project by purchasing a FreeRTOS           *
-     *    tutorial book, reference manual, or both:                          *
-     *    http://www.FreeRTOS.org/Documentation                              *
-     *                                                                       *
-    ***************************************************************************
-
-    http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-    the FAQ page "My application does not run, what could be wrong?".  Have you
-    defined configASSERT()?
-
-    http://www.FreeRTOS.org/support - In return for receiving this top quality
-    embedded software for free we request you assist our global community by
-    participating in the support forum.
-
-    http://www.FreeRTOS.org/training - Investing in training allows your team to
-    be as productive as possible as early as possible.  Now you can receive
-    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-    Ltd, and the world's leading authority on the world's leading RTOS.
-
-    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
-    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
-    compatible FAT file system, and our tiny thread aware UDP/IP stack.
-
-    http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
-    Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
-
-    http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
-    Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and commercial middleware.
-
-    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
-    engineered and independently SIL3 certified version for use in safety and
-    mission critical applications that require provable dependability.
-
-    1 tab == 4 spaces!
-*/
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -302,7 +233,7 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 			{
 				if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToSend ) ) != pdFALSE )
 				{
-					queueYIELD_IF_USING_PREEMPTION();
+					queueYIELD_IF_USING_PREEMPTION();	////即为portYIELD_WITHIN_API()
 				}
 				else
 				{
@@ -804,16 +735,16 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 				#else /* configUSE_QUEUE_SETS */
 				{
 					/* If there was a task waiting for data to arrive on the
-					queue then unblock it now. */
+					queue then unblock it now. */  ////如果之前有任务因为消息队列为空无法接收消息而阻塞，这里成功发送一个消息后，那么现在就解除它的等待阻塞了。
 					if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToReceive ) ) == pdFALSE )
 					{
-						if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToReceive ) ) != pdFALSE )
+						if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToReceive ) ) != pdFALSE )	
 						{
 							/* The unblocked task has a priority higher than
 							our own so yield immediately.  Yes it is ok to do
 							this from within the critical section - the kernel
 							takes care of that. */
-							queueYIELD_IF_USING_PREEMPTION();
+							queueYIELD_IF_USING_PREEMPTION();	////相当于portYIELD
 						}
 						else
 						{
@@ -840,7 +771,7 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 			}
 			else
 			{
-				if( xTicksToWait == ( TickType_t ) 0 )
+				if( xTicksToWait == ( TickType_t ) 0 )		////阻塞等待时间为0，直接退出
 				{
 					/* The queue was full and no block time is specified (or
 					the block time has expired) so leave now. */
@@ -854,9 +785,9 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 				else if( xEntryTimeSet == pdFALSE )
 				{
 					/* The queue was full and a block time was specified so
-					configure the timeout structure. */
-					vTaskSetTimeOutState( &xTimeOut );
-					xEntryTimeSet = pdTRUE;
+					configure the timeout structure. */	////task.c(L2938)
+					vTaskSetTimeOutState( &xTimeOut );	////pxTimeOut->xOverflowCount = xNumOfOverflows 进入阻塞的时间
+					xEntryTimeSet = pdTRUE;				////pxTimeOut->xTimeOnEntering = xTickCount;	溢出次数
 				}
 				else
 				{
@@ -881,18 +812,18 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 				traceBLOCKING_ON_QUEUE_SEND( pxQueue );
 				vTaskPlaceOnEventList( &( pxQueue->xTasksWaitingToSend ), xTicksToWait );
 
-				/* Unlocking the queue means queue events can effect the
-				event list.  It is possible	that interrupts occurring now
-				remove this task from the event	list again - but as the
-				scheduler is suspended the task will go onto the pending
-				ready last instead of the actual ready list. */
+				/* Unlocking the queue means queue events can effect the	解锁队列意味着队列事件可以影响
+				event list.  It is possible	that interrupts occurring now   事件列表。现在发生的中断可能
+				remove this task from the event	list again - but as the		会将这个任务从事件列表中移除.
+				scheduler is suspended the task will go onto the pending    但是当调度器被挂起时，任务将进入
+				ready last instead of the actual ready list. 		到最后一个待处理的就绪列表，而不是实际的就绪列表。*/				
 				prvUnlockQueue( pxQueue );
 
-				/* Resuming the scheduler will move tasks from the pending
-				ready list into the ready list - so it is feasible that this
-				task is already in a ready list before it yields - in which
-				case the yield will not cause a context switch unless there
-				is also a higher priority task in the pending ready list. */
+				/* Resuming the scheduler will move tasks from the pending    恢复调度器会把任务从pending ready list移到
+				ready list into the ready list - so it is feasible that this  ready list中。因此，这个任务在yield之前可能
+				task is already in a ready list before it yields - in which   已经在一个ready list中了，在这种情况下，
+				case the yield will not cause a context switch unless there   yield不会导致上下文切换，除非在pending ready list
+				is also a higher priority task in the pending ready list.     中还有一个优先级更高的任务。*/
 				if( xTaskResumeAll() == pdFALSE )
 				{
 					portYIELD_WITHIN_API();
@@ -1259,16 +1190,16 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 		{
 			const UBaseType_t uxMessagesWaiting = pxQueue->uxMessagesWaiting;
 
-			/* Is there data in the queue now?  To be running the calling task
-			must be the highest priority task wanting to access the queue. */
+			/* Is there data in the queue now?  To be running the calling task  要运行调用任务的，必须是
+			must be the highest priority task wanting to access the queue.  希望访问队列的优先级最高的任务。*/
 			if( uxMessagesWaiting > ( UBaseType_t ) 0 )
 			{
 				/* Remember the read position in case the queue is only being
-				peeked. */
+				peeked.   记住读取位置，以防只是读取队列消息*/
 				pcOriginalReadPosition = pxQueue->u.pcReadFrom;
 
-				prvCopyDataFromQueue( pxQueue, pvBuffer );
-
+				prvCopyDataFromQueue( pxQueue, pvBuffer );	////pcReadFrom的指向在prvCopyDataFromQueue函数内被修改了
+															////且该函数只有在pxQueue->uxItemSize != 0时才有实际作用(即信号量/互斥量无用)
 				if( xJustPeeking == pdFALSE )
 				{
 					traceQUEUE_RECEIVE( pxQueue );
@@ -1291,7 +1222,7 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 					}
 					#endif /* configUSE_MUTEXES */
 
-					if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToSend ) ) == pdFALSE )
+					if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToSend ) ) == pdFALSE )	////如果此时消息队列是满的，这里读走一个消息后，就可以恢复一个因为正在等待发送消息而阻塞的任务
 					{
 						if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToSend ) ) != pdFALSE )
 						{
@@ -1311,13 +1242,13 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 				{
 					traceQUEUE_PEEK( pxQueue );
 
-					/* The data is not being removed, so reset the read
-					pointer. */
-					pxQueue->u.pcReadFrom = pcOriginalReadPosition;
+					/* The data is not being removed, so reset the read  指针pcReadFrom的指向在prvCopyDataFromQueue函数内被修改了
+					pointer. 											 单元格的内容本身不会被memset的，我们只是通过调整指针实现访问 */
+					pxQueue->u.pcReadFrom = pcOriginalReadPosition;	 ////发送时直接覆盖单元格内容即可，无需先清除再写
 
 					/* The data is being left in the queue, so see if there are
-					any other tasks waiting for the data. */
-					if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToReceive ) ) == pdFALSE )
+					any other tasks waiting for the data. */		////消息队列中不只有一个消息，检查xTasksWaitingToReceive列表看是否还有任务在等待接收消息
+					if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToReceive ) ) == pdFALSE ) 
 					{
 						if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToReceive ) ) != pdFALSE )
 						{
@@ -1352,7 +1283,7 @@ Queue_t * const pxQueue = ( Queue_t * ) xQueue;
 				{
 					/* The queue was empty and a block time was specified so
 					configure the timeout structure. */
-					vTaskSetTimeOutState( &xTimeOut );
+					vTaskSetTimeOutState( &xTimeOut );	 ////这里往下，几乎是与xQueueGenericSend中一样的步骤流程
 					xEntryTimeSet = pdTRUE;
 				}
 				else

@@ -1,72 +1,3 @@
-/*
-    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
-    All rights reserved
-
-    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    This file is part of the FreeRTOS distribution.
-
-    FreeRTOS is free software; you can redistribute it and/or modify it under
-    the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
-
-    ***************************************************************************
-    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
-    >>!   distribute a combined work that includes FreeRTOS without being   !<<
-    >>!   obliged to provide the source code for proprietary components     !<<
-    >>!   outside of the FreeRTOS kernel.                                   !<<
-    ***************************************************************************
-
-    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available on the following
-    link: http://www.freertos.org/a00114.html
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that is more than just the market leader, it     *
-     *    is the industry's de facto standard.                               *
-     *                                                                       *
-     *    Help yourself get started quickly while simultaneously helping     *
-     *    to support the FreeRTOS project by purchasing a FreeRTOS           *
-     *    tutorial book, reference manual, or both:                          *
-     *    http://www.FreeRTOS.org/Documentation                              *
-     *                                                                       *
-    ***************************************************************************
-
-    http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-    the FAQ page "My application does not run, what could be wrong?".  Have you
-    defined configASSERT()?
-
-    http://www.FreeRTOS.org/support - In return for receiving this top quality
-    embedded software for free we request you assist our global community by
-    participating in the support forum.
-
-    http://www.FreeRTOS.org/training - Investing in training allows your team to
-    be as productive as possible as early as possible.  Now you can receive
-    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-    Ltd, and the world's leading authority on the world's leading RTOS.
-
-    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
-    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
-    compatible FAT file system, and our tiny thread aware UDP/IP stack.
-
-    http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
-    Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
-
-    http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
-    Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and commercial middleware.
-
-    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
-    engineered and independently SIL3 certified version for use in safety and
-    mission critical applications that require provable dependability.
-
-    1 tab == 4 spaces!
-*/
-
 /* Standard includes. */
 #include <stdlib.h>
 
@@ -418,17 +349,17 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 		{
 			mtCOVERAGE_TEST_MARKER();
 		}
-
-		/* The task blocked to wait for its required bits to be set - at this
-		point either the required bits were set or the block time expired.  If
-		the required bits were set they will have been stored in the task's
-		event list item, and they should now be retrieved then cleared. */
+		////进入到这里说明当前的任务已经被重新调度了（所以下面那句涉及到的pxCurrentTCB指的可能已经不是调用该函数的这个TCB了）
+		/* The task blocked to wait for its required bits to be set - at this  任务阻塞等待所需的位被设置，此时
+		point either the required bits were set or the block time expired.  If 所需的位被设置或阻塞时间到期。如果
+		the required bits were set they will have been stored in the task's    设置了所需的位，它们将存储在任务的
+		event list item, and they should now be retrieved then cleared.        事件列表项中，现在应该检索并清除它们。*/
 		uxReturn = uxTaskResetEventItemValue();
 
-		if( ( uxReturn & eventUNBLOCKED_DUE_TO_BIT_SET ) == ( EventBits_t ) 0 )
-		{
-			taskENTER_CRITICAL();
-			{
+		if( ( uxReturn & eventUNBLOCKED_DUE_TO_BIT_SET ) == ( EventBits_t ) 0 )	////可能仅仅是因为超时，而不是因为所需的位被设置了
+		{																		////此时的pxCurrentTCB也可能不是刚从EventList中出来的，这种情况下的这个if判断必定成立
+			taskENTER_CRITICAL();												////不过这种情况也没关系，不影响uxReturn，同时我们主要目的是想再次判断此时调用这个函数
+			{																	////的TCB在任务切换这段时间内是否等到了想要的事件位设置(下面的if判断)，有的话，跟上面第一种情况一样处理
 				/* The task timed out, just return the current event bit value. */
 				uxReturn = pxEventBits->uxEventBits;
 
@@ -597,11 +528,11 @@ BaseType_t xMatchFound = pdFALSE;
 					mtCOVERAGE_TEST_MARKER();
 				}
 
-				/* Store the actual event flag value in the task's event list
-				item before removing the task from the event list.  The
-				eventUNBLOCKED_DUE_TO_BIT_SET bit is set so the task knows
-				that is was unblocked due to its required bits matching, rather
-				than because it timed out. */
+				/* Store the actual event flag value in the task's event list   在从事件列表中删除任务之前，在任务
+				item before removing the task from the event list.  The         的事件列表项中存储实际的事件标志值。
+				eventUNBLOCKED_DUE_TO_BIT_SET bit is set so the task knows      eventUNBLOCKED_DUE_TO_BIT_SET位的设置
+				that is was unblocked due to its required bits matching, rather 使任务知道它被解除阻塞是因为
+				than because it timed out.                                      它所需要的位匹配，而不是因为它超时。*/
 				( void ) xTaskRemoveFromUnorderedEventList( pxListItem, pxEventBits->uxEventBits | eventUNBLOCKED_DUE_TO_BIT_SET );
 			}
 

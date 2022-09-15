@@ -210,7 +210,7 @@ being used for another purpose.  The following bit definition is used to inform
 the scheduler that the value should not be changed - in which case it is the
 responsibility of whichever module is using the value to ensure it gets set back
 to its original value when it is released. */
-#if( configUSE_16_BIT_TICKS == 1 )
+#if( configUSE_16_BIT_TICKS == 1 )			////在FreeRTOSConfig.h中已置0
 	#define taskEVENT_LIST_ITEM_VALUE_IN_USE	0x8000U
 #else
 	#define taskEVENT_LIST_ITEM_VALUE_IN_USE	0x80000000UL
@@ -335,13 +335,13 @@ PRIVILEGED_DATA static UBaseType_t uxTaskNumber 					= ( UBaseType_t ) 0U;
 PRIVILEGED_DATA static volatile TickType_t xNextTaskUnblockTime		= ( TickType_t ) 0U; /* Initialised to portMAX_DELAY before the scheduler starts. */
 PRIVILEGED_DATA static TaskHandle_t xIdleTaskHandle					= NULL;			/*< Holds the handle of the idle task.  The idle task is created automatically when the scheduler is started. */
 
-/* Context switches are held pending while the scheduler is suspended.  Also,
-interrupts must not manipulate the xStateListItem of a TCB, or any of the
-lists the xStateListItem can be referenced from, if the scheduler is suspended.
-If an interrupt needs to unblock a task while the scheduler is suspended then it
-moves the task's event list item into the xPendingReadyList, ready for the
-kernel to move the task from the pending ready list into the real ready list
-when the scheduler is unsuspended.  The pending ready list itself can only be
+/* Context switches are held pending while the scheduler is suspended.  Also,    当调度器挂起时，上下文切换将保持挂起。此外，
+interrupts must not manipulate the xStateListItem of a TCB, or any of the        如果调度器挂起，中断不能操作TCB的xStateListItem，也不能
+lists the xStateListItem can be referenced from, if the scheduler is suspended.  操作xStateListItem可以引用的任何列表。
+If an interrupt needs to unblock a task while the scheduler is suspended then it 如果在调度器挂起期间，一个中断需要解除任务阻塞，那么它
+moves the task's event list item into the xPendingReadyList, ready for the       将任务的事件列表项移动到xPendingReadyList中，以便
+kernel to move the task from the pending ready list into the real ready list     在调度器未挂起时，内核将任务从挂起就绪列表移到真正的就绪列表中。
+when the scheduler is unsuspended.  The pending ready list itself can only be    挂起的就绪列表本身只能从临界区访问。
 accessed from a critical section. */
 PRIVILEGED_DATA static volatile UBaseType_t uxSchedulerSuspended	= ( UBaseType_t ) pdFALSE;
 
@@ -802,7 +802,7 @@ UBaseType_t x;
 	back to	the containing TCB from a generic item in a list. */
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xStateListItem ), pxNewTCB );
 
-	/* Event lists are always in priority order. */
+	/* Event lists are always in priority order. 事件列表的优先级顺序总是相同的 */
 	listSET_LIST_ITEM_VALUE( &( pxNewTCB->xEventListItem ), ( TickType_t ) configMAX_PRIORITIES - ( TickType_t ) uxPriority ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xEventListItem ), pxNewTCB );
 
@@ -1325,7 +1325,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 		return uxReturn;
 	}
 
-#endif /* INCLUDE_uxTaskPriorityGet */
+#endif /* 	 */
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskPrioritySet == 1 )
@@ -2571,7 +2571,7 @@ BaseType_t xSwitchRequired = pdFALSE;
 	}
 	else
 	{
-		++uxPendedTicks;
+		++uxPendedTicks;		////不采用"时间片"时，记录uxPendedTicks自增1
 
 		/* The tick hook gets called at regular intervals, even if the
 		scheduler is locked. */
@@ -2834,9 +2834,9 @@ BaseType_t xReturn;
 	be removed as it is known to be the highest priority.  Remove the TCB from
 	the delayed list, and add it to the ready list.
 
-	If an event is for a queue that is locked then this function will never
-	get called - the lock count on the queue will get modified instead.  This
-	means exclusive access to the event list is guaranteed here.
+	If an event is for a queue that is locked then this function will never    如果一个事件是针对已锁定的队列的，那么这个函数
+	get called - the lock count on the queue will get modified instead.  This  将永远不会被调用——而是将修改队列上的锁计数。
+	means exclusive access to the event list is guaranteed here.               这意味着这里保证了对事件列表的独占访问。
 
 	This function assumes that a check has already been made to ensure that
 	pxEventList is not empty. */
@@ -3511,10 +3511,10 @@ static void prvCheckTasksWaitingTermination( void )
 
 	static void prvDeleteTCB( TCB_t *pxTCB )
 	{
-		/* This call is required specifically for the TriCore port.  It must be
-		above the vPortFree() calls.  The call is also used by ports/demos that
-		want to allocate and clean RAM statically. */
-		portCLEAN_UP_TCB( pxTCB );
+		/* This call is required specifically for the TriCore port.  It must be  这个调用是TriCore端口特别需要的。它必须是
+		above the vPortFree() calls.  The call is also used by ports/demos that  上面的vPortFree()调用。ports/demos如果想要
+		want to allocate and clean RAM statically.  							 和清理RAM静态分配，也使用这个调用*/
+		portCLEAN_UP_TCB( pxTCB );						////这里有必要吗？下面不是还要调用到pxTCB？？
 
 		/* Free up the memory allocated by the scheduler for the task.  It is up
 		to the task to free any memory allocated at the application level. */
