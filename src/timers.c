@@ -74,7 +74,7 @@ typedef struct tmrCallbackParameters
 
 /* The structure that contains the two message types, along with an identifier
 that is used to determine which message type is valid. */
-typedef struct tmrTimerQueueMessage
+typedef struct tmrTimerQueueMessage			////软件定时器消息队列
 {
 	BaseType_t			xMessageID;			/*<< The command being sent to the timer service task. */
 	union

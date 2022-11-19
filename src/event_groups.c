@@ -349,20 +349,20 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 		{
 			mtCOVERAGE_TEST_MARKER();
 		}
-		////进入到这里说明当前的任务已经被重新调度了（所以下面那句涉及到的pxCurrentTCB指的可能已经不是调用该函数的这个TCB了）
+		////进入到这里说明当前的任务已经被重新调度了（下面那句涉及到的pxCurrentTCB指的一定是（可能已经不是--之前这个想法是错的）调用该函数的这个TCB）
 		/* The task blocked to wait for its required bits to be set - at this  任务阻塞等待所需的位被设置，此时
 		point either the required bits were set or the block time expired.  If 所需的位被设置或阻塞时间到期。如果
 		the required bits were set they will have been stored in the task's    设置了所需的位，它们将存储在任务的
 		event list item, and they should now be retrieved then cleared.        事件列表项中，现在应该检索并清除它们。*/
-		uxReturn = uxTaskResetEventItemValue();
+		uxReturn = uxTaskResetEventItemValue();		////这里还是由"调用该函数的这个TCB"执行，只是因为前面被PlaceOn阻塞了，阻塞时间到期了，该TCB重新被调度，调度一回来就从这句开始执行
 
-		if( ( uxReturn & eventUNBLOCKED_DUE_TO_BIT_SET ) == ( EventBits_t ) 0 )	////可能仅仅是因为超时，而不是因为所需的位被设置了
-		{																		////此时的pxCurrentTCB也可能不是刚从EventList中出来的，这种情况下的这个if判断必定成立
-			taskENTER_CRITICAL();												////不过这种情况也没关系，不影响uxReturn，同时我们主要目的是想再次判断此时调用这个函数
-			{																	////的TCB在任务切换这段时间内是否等到了想要的事件位设置(下面的if判断)，有的话，跟上面第一种情况一样处理
+		if( ( uxReturn & eventUNBLOCKED_DUE_TO_BIT_SET ) == ( EventBits_t ) 0 )	////如果仅仅是因为超时，而不是因为所需的位被设置了
+		{																		////同时我们再次判断此时调用这个函数(相当于给多一次机会)的TCB在这波操作
+			taskENTER_CRITICAL();												////的时间间隙内是否等到了想要的事件位被设置了(下面的if判断)，有的话，跟上面
+			{																	////第一种情况 if( xWaitConditionMet != pdFALSE ) { ... } 一样处理
 				/* The task timed out, just return the current event bit value. */
-				uxReturn = pxEventBits->uxEventBits;
-
+				uxReturn = pxEventBits->uxEventBits;							////总结一下，如果任务等待的位被设置了，则返回用户指定的事件位(如L357)
+																				////若是因为超时，则返回此时的事件组(365)
 				/* It is possible that the event bits were updated between this
 				task leaving the Blocked state and running again. */
 				if( prvTestWaitCondition( uxReturn, uxBitsToWaitFor, xWaitForAllBits ) != pdFALSE )
@@ -530,8 +530,8 @@ BaseType_t xMatchFound = pdFALSE;
 
 				/* Store the actual event flag value in the task's event list   在从事件列表中删除任务之前，在任务
 				item before removing the task from the event list.  The         的事件列表项中存储实际的事件标志值。
-				eventUNBLOCKED_DUE_TO_BIT_SET bit is set so the task knows      eventUNBLOCKED_DUE_TO_BIT_SET位的设置
-				that is was unblocked due to its required bits matching, rather 使任务知道它被解除阻塞是因为
+				eventUNBLOCKED_DUE_TO_BIT_SET bit is set so the task knows      eventUNBLOCKED_DUE_TO_BIT_SET位
+				that is was unblocked due to its required bits matching, rather 的设置，使任务知道它被解除阻塞是因为
 				than because it timed out.                                      它所需要的位匹配，而不是因为它超时。*/
 				( void ) xTaskRemoveFromUnorderedEventList( pxListItem, pxEventBits->uxEventBits | eventUNBLOCKED_DUE_TO_BIT_SET );
 			}

@@ -44,5 +44,14 @@ configKERNEL_INTERRUPT_PRIORITY setting.  Here 15 corresponds to the lowest
 NVIC value of 255. */
 #define configLIBRARY_KERNEL_INTERRUPT_PRIORITY	15      ////在野火FreeRTOSConfig.h中特有的configLIBRARY_LOWEST_INTERRUPT_PRIORITY (15) ？？
 
+////#endif /* FREERTOS_CONFIG_H */
+
+////根据野火书上加的(电子书P136)
+#define configTIMER_TASK_PRIORITY       (configMAX_PRIORITIES - 1)
+#define configTIMER_QUEUE_LENGTH        10
+#define configTIMER_TASK_STACK_DEPTH    (configMINIMAL_STACK_SIZE * 2)
+
+
+
 #endif /* FREERTOS_CONFIG_H */
 

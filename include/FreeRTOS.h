@@ -176,7 +176,7 @@ extern "C" {
 #endif
 
 #ifndef configUSE_TIMERS						////启用软件计时器，野火中置1
-	#define configUSE_TIMERS 0
+	#define configUSE_TIMERS 1
 #endif
 
 #ifndef configUSE_COUNTING_SEMAPHORES			////为1时使用计数信号量，野火中置1
